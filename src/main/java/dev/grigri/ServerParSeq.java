@@ -1,5 +1,7 @@
 package dev.grigri;
 
+import com.linkedin.parseq.Engine;
+import com.linkedin.parseq.EngineBuilder;
 import com.linkedin.parseq.Task;
 import com.linkedin.parseq.promise.Promises;
 import com.linkedin.parseq.promise.SettablePromise;
@@ -8,10 +10,15 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class ServerParSeq {
 
-    private final ExecutorService es = Executors.newFixedThreadPool(256);
+    private final ExecutorService es1 = Executors.newFixedThreadPool(128);
+    private final ExecutorService es2 = Executors.newFixedThreadPool(256);
+    final ScheduledExecutorService timerScheduler = Executors.newSingleThreadScheduledExecutor();
+    private final Engine engine = new EngineBuilder().setTaskExecutor(es2).setTimerScheduler(timerScheduler).build();
 
     public void run() throws IOException {
         final ServerSocket server = new ServerSocket(8080);
@@ -19,7 +26,7 @@ public class ServerParSeq {
         while (!server.isClosed()) {
             var socket = server.accept();
             var r = RequestPayload.from(socket);
-            es.submit(() -> {
+            es1.submit(() -> {
                 try {
                     var request = new SendCardDetailsRequest(socket);
                     sendCombinedCardDetails(request, r.tokenPAN(), r.tokenExpDate(), r.tokenHolderName());
@@ -35,21 +42,22 @@ public class ServerParSeq {
         var taskExpDate = runDetokenizeTask(tokenExpDate);
         var taskHolderName = runDetokenizeTask(tokenHolderName);
 
-        Task.par(taskPAN, taskExpDate, taskHolderName)
+        var task = Task.par(taskPAN, taskExpDate, taskHolderName)
                 .andThen((pan, expDate, holderName) ->
                         request.setPAN(pan)
                                 .setExpDate(expDate)
                                 .setHolderName(holderName)
                                 .send()
                 );
+
+        engine.run(task);
     }
 
     //mock
     private Task<String> runDetokenizeTask(Token token) {
         return Task.async(() -> {
                     SettablePromise<String> settablePromise = Promises.settable();
-                    Thread.sleep(1000);
-                    settablePromise.done(token.token());
+                    timerScheduler.schedule(() -> settablePromise.done(token.token()), 1000, TimeUnit.MILLISECONDS);
                     return settablePromise;
                 })
                 .recoverWith(this::handleError);
