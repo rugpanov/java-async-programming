@@ -29,9 +29,9 @@ public class ServerVirtualThreads {
 
     void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) throws IOException, InterruptedException, ExecutionException {
         try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            Supplier<String> supplierPAN = scope.fork(() -> detokenize(tokenPAN));
-            Supplier<String> supplierExpDate = scope.fork(() -> detokenize(tokenExpDate));
-            Supplier<String> supplierHolderName = scope.fork(() -> detokenize(tokenHolderName));
+            var supplierPAN = scope.fork(() -> detokenize(tokenPAN));
+            var supplierExpDate = scope.fork(() -> detokenize(tokenExpDate));
+            var supplierHolderName = scope.fork(() -> detokenize(tokenHolderName));
 
             scope.join();
             scope.throwIfFailed();

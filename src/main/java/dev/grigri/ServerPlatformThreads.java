@@ -28,7 +28,6 @@ public class ServerPlatformThreads {
     }
 
     void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) throws IOException, InterruptedException {
-
         Thread t1 = new Thread(() -> request.setPAN(detokenize(tokenPAN)));
         Thread t2 = new Thread(() -> request.setExpDate(detokenize(tokenExpDate)));
         Thread t3 = new Thread(() -> request.setHolderName(detokenize(tokenHolderName)));

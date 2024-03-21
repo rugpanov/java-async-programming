@@ -16,7 +16,7 @@ public class ThreadsBenchmarksUtils {
 
     public static void startManyVirtualThreads(int nThreads) {
         for (int i = 0; i < nThreads; i++) {
-            System.out.println("Starting thread " + i);
+            System.out.println("Starting virtual thread " + i);
             Thread.ofVirtual().start(() -> {
                 try {
                     Thread.sleep(10_000);

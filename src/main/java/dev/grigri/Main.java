@@ -18,6 +18,7 @@ public class Main {
             finish = Instant.now();
             timeElapsed = Duration.between(start, finish).toMillis();
             System.out.println("Time elapsed to start virtual threads: " + timeElapsed + "ms");
+            throw e;
         }
     }
 }
