@@ -6,7 +6,6 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.StructuredTaskScope;
-import java.util.function.Supplier;
 
 public class ServerVirtualThreads {
 
@@ -18,8 +17,8 @@ public class ServerVirtualThreads {
             var r = RequestPayload.from(socket);
             Thread.ofVirtual().start(() -> {
                 try {
-                    var request = new SendCardDetailsRequest(socket);
-                    sendCombinedCardDetails(request, r.tokenPAN(), r.tokenExpDate(), r.tokenHolderName());
+                    var request = new SendDetokenizedDetailsRequest(socket);
+                    processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail());
                 } catch (InterruptedException | IOException | ExecutionException e) {
                     handleError(e);
                 }
@@ -27,18 +26,18 @@ public class ServerVirtualThreads {
         }
     }
 
-    void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) throws IOException, InterruptedException, ExecutionException {
+    void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) throws IOException, InterruptedException, ExecutionException {
         try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
-            var supplierPAN = scope.fork(() -> detokenize(tokenPAN));
-            var supplierExpDate = scope.fork(() -> detokenize(tokenExpDate));
-            var supplierHolderName = scope.fork(() -> detokenize(tokenHolderName));
+            var supplierName = scope.fork(() -> detokenize(tokenName));
+            var supplierSurname = scope.fork(() -> detokenize(tokenSurname));
+            var supplierEmail = scope.fork(() -> detokenize(tokenEmail));
 
             scope.join();
             scope.throwIfFailed();
 
-            request.setPAN(supplierPAN.get())
-                    .setExpDate(supplierExpDate.get())
-                    .setHolderName(supplierHolderName.get())
+            request.setName(supplierName.get())
+                    .setSurname(supplierSurname.get())
+                    .setEmail(supplierEmail.get())
                     .send();
         }
     }

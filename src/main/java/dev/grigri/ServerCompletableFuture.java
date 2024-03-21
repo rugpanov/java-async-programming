@@ -2,7 +2,6 @@ package dev.grigri;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.net.Socket;
 import java.util.concurrent.*;
 
 public class ServerCompletableFuture {
@@ -17,33 +16,33 @@ public class ServerCompletableFuture {
             var socket = server.accept();
             var r = RequestPayload.from(socket);
 
-            var request = new SendCardDetailsRequest(socket);
-            es1.submit(() -> sendCombinedCardDetails(request, r.tokenPAN(), r.tokenExpDate(), r.tokenHolderName()));
+            var request = new SendDetokenizedDetailsRequest(socket);
+            es1.submit(() -> processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail()));
         }
     }
 
-    void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) {
-        var futurePAN = CompletableFuture.supplyAsync(() -> detokenize(tokenPAN), es2);
-        var futureExpDate = CompletableFuture.supplyAsync(() -> detokenize(tokenExpDate), es2);
-        var futureHolderName = CompletableFuture.supplyAsync(() -> detokenize(tokenHolderName), es2);
+    void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) {
+        var futureName = CompletableFuture.supplyAsync(() -> detokenize(tokenName), es2);
+        var futureSurname = CompletableFuture.supplyAsync(() -> detokenize(tokenSurname), es2);
+        var futureEmail = CompletableFuture.supplyAsync(() -> detokenize(tokenEmail), es2);
 
-        futurePAN.exceptionally(e -> {
+        futureName.exceptionally(e -> {
             handleError(e);
             return null;
-        }).thenAccept(pan ->
-                futureExpDate.exceptionally(e -> {
+        }).thenAccept(name ->
+                futureSurname.exceptionally(e -> {
                     handleError(e);
                     return null;
-                }).thenAccept(expDate ->
-                        futureHolderName.exceptionally(e -> {
+                }).thenAccept(surname ->
+                        futureEmail.exceptionally(e -> {
                             handleError(e);
                             return null;
-                        }).thenAccept(holderName ->
+                        }).thenAccept(email ->
                                 {
                                     try {
-                                        request.setPAN(pan)
-                                                .setExpDate(expDate)
-                                                .setHolderName(holderName)
+                                        request.setName(name)
+                                                .setSurname(surname)
+                                                .setEmail(email)
                                                 .send();
                                     } catch (IOException e) {
                                         throw new RuntimeException(e);

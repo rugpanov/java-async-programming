@@ -18,8 +18,8 @@ public class ServerPlatformThreads {
 
             es.submit(() -> {
                 try {
-                    var request = new SendCardDetailsRequest(socket);
-                    sendCombinedCardDetails(request, r.tokenPAN(), r.tokenExpDate(), r.tokenHolderName());
+                    var request = new SendDetokenizedDetailsRequest(socket);
+                    processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail());
                 } catch (IOException | InterruptedException e) {
                     handleError(e);
                 }
@@ -27,10 +27,10 @@ public class ServerPlatformThreads {
         }
     }
 
-    void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) throws IOException, InterruptedException {
-        Thread t1 = new Thread(() -> request.setPAN(detokenize(tokenPAN)));
-        Thread t2 = new Thread(() -> request.setExpDate(detokenize(tokenExpDate)));
-        Thread t3 = new Thread(() -> request.setHolderName(detokenize(tokenHolderName)));
+    void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) throws IOException, InterruptedException {
+        Thread t1 = new Thread(() -> request.setName(detokenize(tokenName)));
+        Thread t2 = new Thread(() -> request.setSurname(detokenize(tokenSurname)));
+        Thread t3 = new Thread(() -> request.setEmail(detokenize(tokenEmail)));
         t1.start(); t2.start(); t3.start();
 
         t1.join(); t2.join(); t3.join();

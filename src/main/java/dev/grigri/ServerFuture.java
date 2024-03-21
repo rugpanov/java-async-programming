@@ -20,8 +20,8 @@ public class ServerFuture {
 
             es.submit(() -> {
                 try {
-                    var request = new SendCardDetailsRequest(socket);
-                    sendCombinedCardDetails(request, r.tokenPAN(), r.tokenExpDate(), r.tokenHolderName());
+                    var request = new SendDetokenizedDetailsRequest(socket);
+                    processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail());
                 } catch (IOException | InterruptedException | ExecutionException e) {
                     handleError(e);
                 }
@@ -29,14 +29,14 @@ public class ServerFuture {
         }
     }
 
-    void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) throws IOException, InterruptedException, ExecutionException {
-        Future<String> futurePAN = es.submit(() -> detokenize(tokenPAN));
-        Future<String> futureExpDate = es.submit(() -> detokenize(tokenExpDate));
-        Future<String> futureHolderName = es.submit(() -> detokenize(tokenHolderName));
+    void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) throws IOException, InterruptedException, ExecutionException {
+        Future<String> futureName = es.submit(() -> detokenize(tokenName));
+        Future<String> futureSurname = es.submit(() -> detokenize(tokenSurname));
+        Future<String> futureEmail = es.submit(() -> detokenize(tokenEmail));
 
-        request.setPAN(futurePAN.get())
-                .setExpDate(futureExpDate.get())
-                .setHolderName(futureHolderName.get())
+        request.setName(futureName.get())
+                .setSurname(futureSurname.get())
+                .setEmail(futureEmail.get())
                 .send();
     }
 

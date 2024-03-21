@@ -12,15 +12,15 @@ public class ServerNoAsync {
             var socket = server.accept();
             var r = RequestPayload.from(socket);
 
-            var request = new SendCardDetailsRequest(socket);
-            sendCombinedCardDetails(request, r.tokenPAN(), r.tokenExpDate(), r.tokenHolderName());
+            var request = new SendDetokenizedDetailsRequest(socket);
+            processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail());
         }
     }
 
-    void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) throws IOException {
-        request.setPAN(detokenize(tokenPAN))
-                .setExpDate(detokenize(tokenExpDate))
-                .setHolderName(detokenize(tokenHolderName))
+    void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) throws IOException {
+        request.setName(detokenize(tokenName))
+                .setSurname(detokenize(tokenSurname))
+                .setEmail(detokenize(tokenEmail))
                 .send();
     }
 

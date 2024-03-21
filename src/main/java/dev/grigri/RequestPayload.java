@@ -4,10 +4,10 @@ package dev.grigri;
 import java.io.IOException;
 import java.net.Socket;
 
-record RequestPayload(Token tokenPAN, Token tokenExpDate, Token tokenHolderName) {
+record RequestPayload(Token tokenName, Token tokenSurname, Token tokenEmail) {
     /*
      Expected format of the request:
-     InputStream: PAN:panToken\nExpDate:expDateToken\nHolderName:holderNameToken
+     InputStream: Name:tokenName\nSurname:tokenSurname\nEmail:tokenEmail
     */
     static RequestPayload from(Socket request) throws IOException {
         var params = IOUtils.readLines(request.getInputStream(), "UTF-8");

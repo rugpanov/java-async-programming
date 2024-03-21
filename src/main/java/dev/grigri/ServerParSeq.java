@@ -28,8 +28,8 @@ public class ServerParSeq {
             var r = RequestPayload.from(socket);
             es1.submit(() -> {
                 try {
-                    var request = new SendCardDetailsRequest(socket);
-                    sendCombinedCardDetails(request, r.tokenPAN(), r.tokenExpDate(), r.tokenHolderName());
+                    var request = new SendDetokenizedDetailsRequest(socket);
+                    processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail());
                 } catch (InterruptedException e) {
                     handleError(e);
                 }
@@ -37,16 +37,16 @@ public class ServerParSeq {
         }
     }
 
-    void sendCombinedCardDetails(SendCardDetailsRequest request, Token tokenPAN, Token tokenExpDate, Token tokenHolderName) throws InterruptedException {
-        var taskPAN = runDetokenizeTask(tokenPAN);
-        var taskExpDate = runDetokenizeTask(tokenExpDate);
-        var taskHolderName = runDetokenizeTask(tokenHolderName);
+    void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) throws InterruptedException {
+        var taskName = runDetokenizeTask(tokenName);
+        var taskSurname = runDetokenizeTask(tokenSurname);
+        var taskEmail = runDetokenizeTask(tokenEmail);
 
-        var task = Task.par(taskPAN, taskExpDate, taskHolderName)
-                .andThen((pan, expDate, holderName) ->
-                        request.setPAN(pan)
-                                .setExpDate(expDate)
-                                .setHolderName(holderName)
+        var task = Task.par(taskName, taskSurname, taskEmail)
+                .andThen((name, surname, email) ->
+                        request.setName(name)
+                                .setSurname(surname)
+                                .setEmail(email)
                                 .send()
                 );
 
