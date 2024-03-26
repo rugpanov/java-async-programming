@@ -1,7 +1,7 @@
 package dev.grigri;
 
 public class ThreadsBenchmarksUtils {
-    public static void startManyThreads(int nThreads) {
+    public static void startManyPlatformThreads(int nThreads) {
         for (int i = 0; i < nThreads; i++) {
             System.out.println("Starting thread " + i);
             new Thread(() -> {

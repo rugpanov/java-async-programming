@@ -13,7 +13,7 @@ public class Main {
 
         start = Instant.now();
         try {
-            ThreadsBenchmarksUtils.startManyThreads(100_000);
+            ThreadsBenchmarksUtils.startManyPlatformThreads(100_000);
         } catch (OutOfMemoryError e) {
             finish = Instant.now();
             timeElapsed = Duration.between(start, finish).toMillis();

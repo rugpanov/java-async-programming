@@ -6,7 +6,7 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.util.concurrent.*;
 
-public class ServerVirtualThreads {
+public class ServerVirtualThreadsStructuredConcurency {
 
     public void run() throws IOException {
         final ServerSocket server = new ServerSocket(8080);
@@ -25,16 +25,20 @@ public class ServerVirtualThreads {
         }
     }
 
-    private final ExecutorService es = Executors.newVirtualThreadPerTaskExecutor();
     void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) throws IOException, InterruptedException, ExecutionException {
-        Future<String> futureName = es.submit(() -> detokenize(tokenName));
-        Future<String> futureSurname = es.submit(() -> detokenize(tokenSurname));
-        Future<String> futureEmail = es.submit(() -> detokenize(tokenEmail));
+        try (var scope = new StructuredTaskScope.ShutdownOnFailure()) {
+            var supplierName = scope.fork(() -> detokenize(tokenName));
+            var supplierSurname = scope.fork(() -> detokenize(tokenSurname));
+            var supplierEmail = scope.fork(() -> detokenize(tokenEmail));
 
-        request.setName(futureName.get())
-                .setSurname(futureSurname.get())
-                .setEmail(futureEmail.get())
-                .send();
+            scope.join();
+            scope.throwIfFailed();
+
+            request.setName(supplierName.get())
+                    .setSurname(supplierSurname.get())
+                    .setEmail(supplierEmail.get())
+                    .send();
+        }
     }
 
     //mock

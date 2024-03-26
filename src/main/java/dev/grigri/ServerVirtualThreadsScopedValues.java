@@ -4,9 +4,14 @@ import com.linkedin.parseq.Task;
 
 import java.io.IOException;
 import java.net.ServerSocket;
-import java.util.concurrent.*;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
-public class ServerVirtualThreads {
+public class ServerVirtualThreadsScopedValues {
+    public final static ScopedValue<String> REQUEST_ID
+            = ScopedValue.newInstance();
 
     public void run() throws IOException {
         final ServerSocket server = new ServerSocket(8080);
@@ -15,17 +20,21 @@ public class ServerVirtualThreads {
             var socket = server.accept();
             var r = RequestPayload.from(socket);
             Thread.ofVirtual().start(() -> {
-                try {
-                    var request = new SendDetokenizedDetailsRequest(socket);
-                    processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail());
-                } catch (InterruptedException | IOException | ExecutionException e) {
-                    handleError(e);
-                }
+                var request = new SendDetokenizedDetailsRequest(socket);
+
+                ScopedValue.where(REQUEST_ID, r.requestId()).run(() -> {
+                    try {
+                        processDetokenizedDetails(request, r.tokenName(), r.tokenSurname(), r.tokenEmail());
+                    } catch (IOException | InterruptedException | ExecutionException e) {
+                        handleError(e);
+                    }
+                });
             });
         }
     }
 
     private final ExecutorService es = Executors.newVirtualThreadPerTaskExecutor();
+
     void processDetokenizedDetails(SendDetokenizedDetailsRequest request, Token tokenName, Token tokenSurname, Token tokenEmail) throws IOException, InterruptedException, ExecutionException {
         Future<String> futureName = es.submit(() -> detokenize(tokenName));
         Future<String> futureSurname = es.submit(() -> detokenize(tokenSurname));
